@@ -1,21 +1,29 @@
-# flutter-android-cicd-installer
+# flutter-cicd-installer
 
-Install GitHub Actions + Fastlane Android Play Store CI/CD into Flutter projects.
+Install GitHub Actions + Fastlane CI/CD into Flutter projects for **Android** (Play Store) and **iOS** (TestFlight).
 
 ## Prerequisites
 
 - PowerShell 7+
 - [GitHub CLI](https://cli.github.com/) authenticated (`gh auth login`)
 - Ruby + Bundler (optional; used for `bundle lock` on target project)
-- Flutter Android project with release signing configured in `android/app/build.gradle`
+- For iOS first-time setup: macOS with Xcode for `fastlane match appstore`
 
 ## Usage
 
 ```powershell
-git clone https://github.com/osama188/flutter-android-cicd-installer.git
-cd flutter-android-cicd-installer
-.\install.ps1 -TargetPath "C:\path\to\flutter_app"
+git clone https://github.com/osama188/flutter-cicd-installer.git
+cd flutter-cicd-installer
+.\install.ps1 -TargetPath "C:\path\to\flutter_app" -Platform Both
 ```
+
+### Platform flag
+
+| `-Platform` | Scaffolds |
+|-------------|-----------|
+| `Android` | `deploy-android.yml`, `android/fastlane/*` |
+| `iOS` | `deploy-ios.yml`, `ios/fastlane/*` |
+| `Both` | All of the above (default) |
 
 ### Non-interactive mode
 
@@ -24,6 +32,7 @@ Copy `install.config.example.json`, fill in paths and values, then:
 ```powershell
 .\install.ps1 -TargetPath "C:\path\to\flutter_app" `
   -ConfigFile ".\install.config.local.json" `
+  -Platform Both `
   -UpdateSecrets
 ```
 
@@ -32,79 +41,64 @@ Copy `install.config.example.json`, fill in paths and values, then:
 | Flag | Description |
 |------|-------------|
 | `-TargetPath` | Flutter project root (required) |
+| `-Platform` | `Android`, `iOS`, or `Both` (default: `Both`) |
 | `-ConfigFile` | JSON config for non-interactive install |
 | `-Force` | Overwrite existing scaffolded files |
 | `-UpdateSecrets` | Set GitHub secrets without prompting |
-| `-SkipSecrets` | Scaffold files only; skip secret setup |
-| `-WhatIf` | Preview changes without writing files or secrets |
+| `-SkipSecrets` | Scaffold files only |
+| `-WhatIf` | Preview changes without writing |
 
-## What gets installed
+## Release tags
 
-| Path | Purpose |
-|------|---------|
-| `.github/workflows/deploy-android.yml` | Tag-based deploy pipeline |
-| `android/fastlane/Appfile` | Play Store package + JSON key path |
-| `android/fastlane/Fastfile` | `deploy` lane (internal track by default) |
-| `android/Gemfile` | Fastlane Ruby dependencies |
+| Platform | Tag format | Example |
+|----------|------------|---------|
+| Android | `android-v{version}+{build}` | `android-v1.0.4+13` |
+| iOS | `ios-v{version}+{build}` | `ios-v1.0.4+13` |
 
-## GitHub secrets (environment: `production`)
+Platforms deploy independently — push only the tag for the platform you want to release.
+
+## GitHub secrets (`production` environment)
+
+### Android
 
 | Secret | Description |
 |--------|-------------|
-| `KEYSTORE_BASE64` | Base64-encoded upload keystore (`.jks`) |
-| `KEY_ALIAS` | Keystore key alias |
-| `KEY_PASSWORD` | Key password |
-| `STORE_PASSWORD` | Keystore password |
-| `PLAY_STORE_JSON_KEY_BASE64` | Base64-encoded Google Play service account JSON |
-| *(custom)* | Any dart-define keys you configure (e.g. `SUPABASE_URL`) |
+| `KEYSTORE_BASE64` | Base64 upload keystore |
+| `KEY_ALIAS`, `KEY_PASSWORD`, `STORE_PASSWORD` | Signing |
+| `PLAY_STORE_JSON_KEY_BASE64` | Base64 Play service account JSON |
 
-Secrets are stored in the GitHub **environment** (default: `production`), not repo-level secrets.
+### iOS
 
-## Release workflow
+| Secret | Description |
+|--------|-------------|
+| `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_CONTENT` | App Store Connect API key |
+| `MATCH_PASSWORD` | Match encryption passphrase |
+| `MATCH_GIT_BASIC_AUTHORIZATION` | Base64 `username:PAT` for certs repo |
 
-1. Bump version in `pubspec.yaml`
-2. Commit and push
-3. Tag: `git tag v1.0.0+1` (format: `v{major}.{minor}.{patch}+{build}`)
-4. Push tag: `git push origin v1.0.0+1`
+### Shared (optional)
 
-Or trigger manually via **Actions → Deploy to Play Store → Run workflow**.
+| Secret | Description |
+|--------|-------------|
+| `SUPABASE_URL`, etc. | Dart-define keys (Android: test+build; iOS: build only) |
 
-## Troubleshooting
+## iOS one-time operator checklist
 
-### `PLAY_STORE_JSON_KEY_BASE64 is not set`
+The installer scaffolds files and sets secrets but **cannot** automate:
 
-Ensure the secret name is exactly `PLAY_STORE_JSON_KEY_BASE64` in the `production` environment.
+1. Create App Store Connect API key
+2. Create private `ios-certificates` GitHub repo
+3. Run `fastlane match appstore` on a Mac
+4. Xcode: Runner → Release → manual signing → commit `project.pbxproj`
 
-### Tag rejected by workflow
-
-Tags must match `v<major>.<minor>.<patch>+<build>` (e.g. `v1.0.3+12`). The `+` cannot appear in the GitHub tag glob; the workflow uses `v*` and validates in-job.
-
-### `bundle` platform error on CI
-
-Run locally in the target project's `android/` directory:
-
-```powershell
-bundle lock --add-platform x86_64-linux
-```
-
-### Signing errors
-
-Ensure `android/app/build.gradle` has `signingConfigs` referencing `key.properties` before first deploy.
-
-## Testing the installer
-
-Dry-run against an existing project:
-
-```powershell
-.\install.ps1 -TargetPath "C:\path\to\flutter_app" -WhatIf -SkipSecrets
-```
-
-Run unit tests:
+## Testing
 
 ```powershell
 Invoke-Pester -Path tests/
+.\install.ps1 -TargetPath "C:\path\to\flutter_app" -WhatIf -SkipSecrets -Platform Both
 ```
 
-## Manual secret test
+## Migration from v1.x
 
-For a throwaway GitHub repo, use `-UpdateSecrets` with a filled `install.config.local.json` containing valid keystore and service account paths. Never commit that file.
+- Repo renamed from `flutter-android-cicd-installer` to `flutter-cicd-installer`
+- Android tags changed from `v*` to `android-v*`
+- Installer v2.0.0 adds iOS support

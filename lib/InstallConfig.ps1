@@ -6,28 +6,47 @@ function New-InstallConfig {
     [Parameter(Mandatory)][string]$GitHubEnvironment,
     [Parameter(Mandatory)][string]$PlayStoreTrack,
     [Parameter(Mandatory)][string]$GitHubRepo,
+    [ValidateSet('Android', 'iOS', 'Both')]
+    [string]$Platform = 'Both',
     [string[]]$DartDefineKeys = @(),
+    [string]$BundleId = '',
+    [string]$MatchGitUrl = '',
     [string]$KeystorePath = '',
     [string]$KeyAlias = '',
     [string]$KeyPassword = '',
     [string]$StorePassword = '',
     [string]$ServiceAccountJsonPath = '',
+    [string]$AscKeyId = '',
+    [string]$AscIssuerId = '',
+    [string]$AscKeyPath = '',
+    [string]$MatchPassword = '',
+    [string]$MatchGitUsername = '',
+    [string]$MatchGitPat = '',
     [hashtable]$DartDefineValues = @{}
   )
 
   [PSCustomObject]@{
     TargetPath             = (Resolve-Path $TargetPath).Path
     PackageName            = $PackageName
+    BundleId               = $(if ($BundleId) { $BundleId } else { $PackageName })
     FlutterVersion         = $FlutterVersion
     GitHubEnvironment      = $GitHubEnvironment
     PlayStoreTrack         = $PlayStoreTrack
     GitHubRepo             = $GitHubRepo
+    Platform               = $Platform
     DartDefineKeys         = @($DartDefineKeys)
+    MatchGitUrl            = $MatchGitUrl
     KeystorePath           = $KeystorePath
     KeyAlias               = $KeyAlias
     KeyPassword            = $KeyPassword
     StorePassword          = $StorePassword
     ServiceAccountJsonPath = $ServiceAccountJsonPath
+    AscKeyId               = $AscKeyId
+    AscIssuerId            = $AscIssuerId
+    AscKeyPath             = $AscKeyPath
+    MatchPassword          = $MatchPassword
+    MatchGitUsername       = $MatchGitUsername
+    MatchGitPat            = $MatchGitPat
     DartDefineValues       = $DartDefineValues
   }
 }
@@ -72,5 +91,35 @@ $($argLines -join "`n")
     DartDefinesStep  = $dartStep
     TestCommand      = 'flutter test --dart-define-from-file=dart_defines.json'
     BuildDefineFlags = "`n            --dart-define-from-file=dart_defines.json"
+  }
+}
+
+function Get-IosDartDefinesWorkflowBlocks {
+  param([string[]]$Keys)
+
+  $baseCmd = @'
+          flutter build ios --config-only --release \
+            --build-name="${VERSION_NAME}" \
+            --build-number="${BUILD_NUMBER}"
+'@
+
+  if ($Keys.Count -eq 0) {
+    return @{
+      DartDefinesStep = ''
+      BuildIosCommand = $baseCmd
+    }
+  }
+
+  $dart = Get-DartDefinesWorkflowBlocks -Keys $Keys
+  $buildCmd = @'
+          flutter build ios --config-only --release \
+            --build-name="${VERSION_NAME}" \
+            --build-number="${BUILD_NUMBER}" \
+            --dart-define-from-file=dart_defines.json
+'@
+
+  return @{
+    DartDefinesStep = $dart.DartDefinesStep
+    BuildIosCommand = $buildCmd
   }
 }

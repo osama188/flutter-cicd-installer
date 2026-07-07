@@ -12,7 +12,7 @@ on:
         required: true
   push:
     tags:
-      - 'v*'
+      - 'android-v*'
 
 concurrency:
   group: android-deploy-${{ github.ref }}
@@ -54,9 +54,9 @@ jobs:
       - name: Parse version from tag
         if: startsWith(github.ref, 'refs/tags/')
         run: |
-          TAG=${GITHUB_REF#refs/tags/v}
+          TAG=${GITHUB_REF#refs/tags/android-v}
           if [[ ! "$TAG" =~ ^[0-9]+\.[0-9]+\.[0-9]+\+[0-9]+$ ]]; then
-            echo "Tag must match v<major>.<minor>.<patch>+<build>, got: ${GITHUB_REF#refs/tags/}"
+            echo "Tag must match android-v<major>.<minor>.<patch>+<build>, got: ${GITHUB_REF#refs/tags/}"
             exit 1
           fi
           VERSION_NAME=${TAG%+*}

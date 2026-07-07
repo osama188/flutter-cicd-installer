@@ -27,3 +27,35 @@ Describe 'Get-DartDefinesWorkflowBlocks' {
     $b.TestCommand | Should Match 'dart-define-from-file'
   }
 }
+
+Describe 'Get-IosDartDefinesWorkflowBlocks' {
+  It 'omits dart defines when no keys' {
+    $b = Get-IosDartDefinesWorkflowBlocks -Keys @()
+    $b.DartDefinesStep | Should Be ''
+    $b.BuildIosCommand | Should Not Match 'dart-define-from-file'
+  }
+
+  It 'includes dart defines for build' {
+    $b = Get-IosDartDefinesWorkflowBlocks -Keys @('SUPABASE_URL')
+    $b.DartDefinesStep | Should Match 'dart_defines.json'
+    $b.BuildIosCommand | Should Match 'dart-define-from-file'
+  }
+}
+
+Describe 'Android workflow template' {
+  It 'uses android-v tag prefix' {
+    $tpl = Join-Path $PSScriptRoot '../templates/android/workflow/deploy-android.yml.tpl'
+    $content = Get-Content -Raw $tpl
+    $content | Should Match "android-v\*"
+    $content | Should Match 'refs/tags/android-v'
+  }
+}
+
+Describe 'iOS workflow template' {
+  It 'uses ios-v tag prefix' {
+    $tpl = Join-Path $PSScriptRoot '../templates/ios/workflow/deploy-ios.yml.tpl'
+    $content = Get-Content -Raw $tpl
+    $content | Should Match "ios-v\*"
+    $content | Should Match 'refs/tags/ios-v'
+  }
+}

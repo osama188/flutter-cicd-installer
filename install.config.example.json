@@ -1,18 +1,31 @@
 {
+  "platform": "Both",
   "packageName": "com.example.app",
+  "bundleId": "com.example.app",
   "flutterVersion": "3.41.5",
   "githubEnvironment": "production",
   "playStoreTrack": "internal",
+  "matchGitUrl": "https://github.com/owner/ios-certificates.git",
   "dartDefineKeys": ["SUPABASE_URL", "SUPABASE_ANON_KEY"],
-  "keystorePath": "C:/secrets/upload-keystore.jks",
-  "keyAlias": "upload",
-  "keyPassword": "",
-  "storePassword": "",
-  "serviceAccountJsonPath": "C:/secrets/play-store-sa.json",
-  "githubRepo": "owner/repo",
+  "android": {
+    "keystorePath": "C:/secrets/upload-keystore.jks",
+    "keyAlias": "upload",
+    "keyPassword": "",
+    "storePassword": "",
+    "serviceAccountJsonPath": "C:/secrets/play-store-sa.json"
+  },
+  "ios": {
+    "ascKeyId": "XXXXXXXXXX",
+    "ascIssuerId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+    "ascKeyPath": "C:/secrets/AuthKey_XXXXX.p8",
+    "matchPassword": "",
+    "matchGitUsername": "github-username",
+    "matchGitPat": ""
+  },
   "dartDefineValues": {
     "SUPABASE_URL": "",
     "SUPABASE_ANON_KEY": ""
   },
+  "githubRepo": "owner/repo",
   "updateSecrets": true
 }

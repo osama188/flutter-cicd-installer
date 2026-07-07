@@ -29,10 +29,29 @@ function Set-GhSecret {
   Write-Host "Set secret: $Name"
 }
 
-function Invoke-SetGhSecrets {
+function Set-DartDefineGhSecrets {
   param(
     [Parameter(Mandatory)]$Config,
-    [switch]$WhatIf
+    [switch]$WhatIf,
+    [System.Collections.Generic.List[string]]$Names
+  )
+
+  foreach ($key in $Config.DartDefineKeys) {
+    $val = $Config.DartDefineValues[$key]
+    if (-not $WhatIf -and [string]::IsNullOrWhiteSpace($val)) {
+      throw "Missing value for dart-define secret: $key"
+    }
+    Set-GhSecret -Name $key -Value $val -Repo $Config.GitHubRepo `
+      -Environment $Config.GitHubEnvironment -WhatIf:$WhatIf
+    if (-not $Names.Contains($key)) { $Names.Add($key) }
+  }
+}
+
+function Invoke-SetAndroidGhSecrets {
+  param(
+    [Parameter(Mandatory)]$Config,
+    [switch]$WhatIf,
+    [switch]$IncludeDartDefines
   )
 
   if (-not $WhatIf) {
@@ -42,14 +61,9 @@ function Invoke-SetGhSecrets {
     if (-not (Test-Path $Config.ServiceAccountJsonPath)) {
       throw "Service account JSON not found: $($Config.ServiceAccountJsonPath)"
     }
-  }
-
-  if (-not $WhatIf) {
     $sa = Get-Content -Raw $Config.ServiceAccountJsonPath | ConvertFrom-Json
     if ($sa.type -ne 'service_account') { throw 'Invalid service account JSON' }
   }
-
-  Ensure-GhEnvironment -Repo $Config.GitHubRepo -Environment $Config.GitHubEnvironment
 
   $keystoreB64 = ''
   $jsonB64 = ''
@@ -60,33 +74,89 @@ function Invoke-SetGhSecrets {
       [IO.File]::ReadAllBytes((Resolve-Path $Config.ServiceAccountJsonPath)))
   }
 
-  $set = [System.Collections.Generic.List[string]]::new()
-  $set.Add('KEYSTORE_BASE64')
-  $set.Add('KEY_ALIAS')
-  $set.Add('KEY_PASSWORD')
-  $set.Add('STORE_PASSWORD')
-  $set.Add('PLAY_STORE_JSON_KEY_BASE64')
-
-  Set-GhSecret -Name KEYSTORE_BASE64 -Value $keystoreB64 -Repo $Config.GitHubRepo `
-    -Environment $Config.GitHubEnvironment -WhatIf:$WhatIf
-  Set-GhSecret -Name KEY_ALIAS -Value $Config.KeyAlias -Repo $Config.GitHubRepo `
-    -Environment $Config.GitHubEnvironment -WhatIf:$WhatIf
-  Set-GhSecret -Name KEY_PASSWORD -Value $Config.KeyPassword -Repo $Config.GitHubRepo `
-    -Environment $Config.GitHubEnvironment -WhatIf:$WhatIf
-  Set-GhSecret -Name STORE_PASSWORD -Value $Config.StorePassword -Repo $Config.GitHubRepo `
-    -Environment $Config.GitHubEnvironment -WhatIf:$WhatIf
-  Set-GhSecret -Name PLAY_STORE_JSON_KEY_BASE64 -Value $jsonB64 -Repo $Config.GitHubRepo `
-    -Environment $Config.GitHubEnvironment -WhatIf:$WhatIf
-
-  foreach ($key in $Config.DartDefineKeys) {
-    $val = $Config.DartDefineValues[$key]
-    if (-not $WhatIf -and [string]::IsNullOrWhiteSpace($val)) {
-      throw "Missing value for dart-define secret: $key"
-    }
-    Set-GhSecret -Name $key -Value $val -Repo $Config.GitHubRepo `
+  $names = [System.Collections.Generic.List[string]]::new()
+  foreach ($pair in @(
+    @{ N = 'KEYSTORE_BASE64'; V = $keystoreB64 },
+    @{ N = 'KEY_ALIAS'; V = $Config.KeyAlias },
+    @{ N = 'KEY_PASSWORD'; V = $Config.KeyPassword },
+    @{ N = 'STORE_PASSWORD'; V = $Config.StorePassword },
+    @{ N = 'PLAY_STORE_JSON_KEY_BASE64'; V = $jsonB64 }
+  )) {
+    Set-GhSecret -Name $pair.N -Value $pair.V -Repo $Config.GitHubRepo `
       -Environment $Config.GitHubEnvironment -WhatIf:$WhatIf
-    $set.Add($key)
+    $names.Add($pair.N)
   }
 
-  return @($set)
+  if ($IncludeDartDefines) {
+    Set-DartDefineGhSecrets -Config $Config -WhatIf:$WhatIf -Names $names
+  }
+  return @($names)
+}
+
+function Invoke-SetIosGhSecrets {
+  param(
+    [Parameter(Mandatory)]$Config,
+    [switch]$WhatIf,
+    [switch]$IncludeDartDefines
+  )
+
+  if (-not $WhatIf -and -not (Test-Path $Config.AscKeyPath)) {
+    throw "ASC key not found: $($Config.AscKeyPath)"
+  }
+
+  $ascB64 = ''
+  $matchAuth = ''
+  if (-not $WhatIf) {
+    $ascB64 = [Convert]::ToBase64String(
+      [IO.File]::ReadAllBytes((Resolve-Path $Config.AscKeyPath)))
+    $raw = "$($Config.MatchGitUsername):$($Config.MatchGitPat)"
+    $matchAuth = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($raw))
+  }
+
+  $names = [System.Collections.Generic.List[string]]::new()
+  foreach ($pair in @(
+    @{ N = 'ASC_KEY_ID'; V = $Config.AscKeyId },
+    @{ N = 'ASC_ISSUER_ID'; V = $Config.AscIssuerId },
+    @{ N = 'ASC_KEY_CONTENT'; V = $ascB64 },
+    @{ N = 'MATCH_PASSWORD'; V = $Config.MatchPassword },
+    @{ N = 'MATCH_GIT_BASIC_AUTHORIZATION'; V = $matchAuth }
+  )) {
+    Set-GhSecret -Name $pair.N -Value $pair.V -Repo $Config.GitHubRepo `
+      -Environment $Config.GitHubEnvironment -WhatIf:$WhatIf
+    $names.Add($pair.N)
+  }
+
+  if ($IncludeDartDefines) {
+    Set-DartDefineGhSecrets -Config $Config -WhatIf:$WhatIf -Names $names
+  }
+  return @($names)
+}
+
+function Invoke-SetGhSecrets {
+  param(
+    [Parameter(Mandatory)]$Config,
+    [switch]$WhatIf
+  )
+
+  Ensure-GhEnvironment -Repo $Config.GitHubRepo -Environment $Config.GitHubEnvironment
+
+  $all = [System.Collections.Generic.List[string]]::new()
+  $setDartDefines = $Config.DartDefineKeys.Count -gt 0
+  if ($Config.Platform -in 'Android', 'Both') {
+    foreach ($n in (Invoke-SetAndroidGhSecrets -Config $Config -WhatIf:$WhatIf `
+        -IncludeDartDefines:($setDartDefines -and $Config.Platform -eq 'Android'))) {
+      if (-not $all.Contains($n)) { $all.Add($n) }
+    }
+  }
+  if ($Config.Platform -in 'iOS', 'Both') {
+    foreach ($n in (Invoke-SetIosGhSecrets -Config $Config -WhatIf:$WhatIf `
+        -IncludeDartDefines:($setDartDefines -and $Config.Platform -eq 'iOS'))) {
+      if (-not $all.Contains($n)) { $all.Add($n) }
+    }
+  }
+  if ($setDartDefines -and $Config.Platform -eq 'Both') {
+    Set-DartDefineGhSecrets -Config $Config -WhatIf:$WhatIf -Names $all
+  }
+
+  return @($all)
 }
