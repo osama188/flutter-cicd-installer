@@ -12,7 +12,7 @@ Install GitHub Actions + Fastlane Android Play Store CI/CD into Flutter projects
 ## Usage
 
 ```powershell
-git clone https://github.com/<you>/flutter-android-cicd-installer.git
+git clone https://github.com/osama188/flutter-android-cicd-installer.git
 cd flutter-android-cicd-installer
 .\install.ps1 -TargetPath "C:\path\to\flutter_app"
 ```
