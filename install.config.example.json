@@ -1,0 +1,18 @@
+{
+  "packageName": "com.example.app",
+  "flutterVersion": "3.41.5",
+  "githubEnvironment": "production",
+  "playStoreTrack": "internal",
+  "dartDefineKeys": ["SUPABASE_URL", "SUPABASE_ANON_KEY"],
+  "keystorePath": "C:/secrets/upload-keystore.jks",
+  "keyAlias": "upload",
+  "keyPassword": "",
+  "storePassword": "",
+  "serviceAccountJsonPath": "C:/secrets/play-store-sa.json",
+  "githubRepo": "owner/repo",
+  "dartDefineValues": {
+    "SUPABASE_URL": "",
+    "SUPABASE_ANON_KEY": ""
+  },
+  "updateSecrets": true
+}
