@@ -98,7 +98,7 @@ function Get-IosDartDefinesWorkflowBlocks {
   param([string[]]$Keys)
 
   $baseCmd = @'
-          flutter build ios --config-only --release \
+          flutter build ios --config-only --release --no-codesign \
             --build-name="${VERSION_NAME}" \
             --build-number="${BUILD_NUMBER}"
 '@
@@ -112,7 +112,7 @@ function Get-IosDartDefinesWorkflowBlocks {
 
   $dart = Get-DartDefinesWorkflowBlocks -Keys $Keys
   $buildCmd = @'
-          flutter build ios --config-only --release \
+          flutter build ios --config-only --release --no-codesign \
             --build-name="${VERSION_NAME}" \
             --build-number="${BUILD_NUMBER}" \
             --dart-define-from-file=dart_defines.json
