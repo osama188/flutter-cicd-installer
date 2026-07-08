@@ -56,6 +56,11 @@ jobs:
       - name: Install Flutter dependencies
         run: flutter pub get
 
+      - name: Install FlutterFire CLI
+        run: |
+          dart pub global activate flutterfire_cli
+          echo "$HOME/.pub-cache/bin" >> $GITHUB_PATH
+
       - name: Parse version from tag
         if: startsWith(github.ref, 'refs/tags/')
         run: |

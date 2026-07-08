@@ -21,7 +21,7 @@
     "matchPassword": "",
     "matchGitUsername": "github-username",
     "matchGitPat": "",
-    "inHouse": true
+    "inHouse": false
   },
   "dartDefineValues": {
     "SUPABASE_URL": "",

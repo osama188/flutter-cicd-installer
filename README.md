@@ -40,9 +40,18 @@ Copy `install.config.example.json`, fill in paths and values, then:
 
 | Field | Default | Description |
 |-------|---------|-------------|
-| `ios.inHouse` | `true` | Set `in_house` on the App Store Connect API key in the generated Fastfile. Use `true` for Apple Enterprise (in-house) accounts; set `false` for standard App Store Connect accounts. |
+| `ios.inHouse` | `false` | Set `in_house` on the App Store Connect API key in the generated Fastfile. Use `false` for standard App Store / TestFlight accounts; set `true` only for Apple Enterprise (in-house) accounts. |
 
-In interactive mode, you are prompted: `Apple Enterprise (in-house) account? [Y/n]` (default: yes).
+In interactive mode, you are prompted: `Apple Enterprise (in-house) account? [y/N]` (default: no).
+
+### What the iOS installer patches automatically
+
+| Target | Change |
+|--------|--------|
+| `.github/workflows/deploy-ios.yml` | FlutterFire CLI install step (for Crashlytics symbol upload) |
+| `ios/fastlane/Fastfile` | `in_house: false` by default (App Store / TestFlight) |
+| `ios/Podfile` | `IPHONEOS_DEPLOYMENT_TARGET` aligned to `platform :ios` version in `post_install` |
+| Flutter build step | `--no-codesign` on `flutter build ios --config-only` (signing handled by Fastlane Match) |
 
 ### CLI flags
 
@@ -83,7 +92,7 @@ Platforms deploy independently — push only the tag for the platform you want t
 | `MATCH_PASSWORD` | Match encryption passphrase |
 | `MATCH_GIT_BASIC_AUTHORIZATION` | Base64 `username:PAT` for certs repo |
 
-The generated `ios/fastlane/Fastfile` sets `in_house: true` by default (configurable via `ios.inHouse` in the install config). Set `inHouse` to `false` if you use a standard App Store Connect account rather than Apple Enterprise.
+The generated `ios/fastlane/Fastfile` sets `in_house: false` by default (configurable via `ios.inHouse` in the install config). Set `inHouse` to `true` only if you use an Apple Enterprise account.
 
 ### Shared (optional)
 
@@ -95,10 +104,31 @@ The generated `ios/fastlane/Fastfile` sets `in_house: true` by default (configur
 
 The installer scaffolds files and sets secrets but **cannot** automate:
 
-1. Create App Store Connect API key
+1. Create App Store Connect API key (role: **App Manager** or **Admin**)
 2. Create private `ios-certificates` GitHub repo
 3. Run `fastlane match appstore` on a Mac
 4. Xcode: Runner → Release → manual signing → commit `project.pbxproj`
+
+The installer **does** automatically:
+
+- Install `flutterfire_cli` in CI (required if `flutterfire configure` added the Crashlytics Xcode build phase)
+- Patch `ios/Podfile` pod deployment targets to match your `platform :ios` version
+- Generate `in_house: false` in the Fastfile for standard TestFlight deploys
+
+## iOS troubleshooting
+
+| Symptom | Likely cause | Fix |
+|---------|--------------|-----|
+| Archive fails on `flutterfire upload-crashlytics-symbols` | `flutterfire` CLI missing on CI | Re-run installer with `-Force -Platform iOS` (v2.1.0+ includes the workflow step) |
+| `upload_to_testflight` auth error | `in_house: true` on a standard App Store account | Set `ios.inHouse` to `false` and re-scaffold Fastfile |
+| Pod `IPHONEOS_DEPLOYMENT_TARGET` warnings | Pods target older iOS than Xcode supports | Re-run installer to patch Podfile, or add the `post_install` block manually |
+| Match works but upload fails | ASC API key lacks App Manager role, or wrong `ASC_*` secrets | Verify secrets in `production` environment; re-encode `.p8` as base64 |
+
+To refresh an existing project after upgrading the installer:
+
+```powershell
+.\install.ps1 -TargetPath "C:\path\to\flutter_app" -Platform iOS -Force -SkipSecrets
+```
 
 ## Testing
 
@@ -112,3 +142,4 @@ Invoke-Pester -Path tests/
 - Repo renamed from `flutter-android-cicd-installer` to `flutter-cicd-installer`
 - Android tags changed from `v*` to `android-v*`
 - Installer v2.0.0 adds iOS support
+- Installer v2.1.0 ports production iOS CI fixes: FlutterFire CLI step, `in_house: false` default, Podfile deployment-target patch

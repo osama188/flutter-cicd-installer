@@ -22,7 +22,7 @@ function New-InstallConfig {
     [string]$MatchPassword = '',
     [string]$MatchGitUsername = '',
     [string]$MatchGitPat = '',
-    [bool]$InHouse = $true,
+    [bool]$InHouse = $false,
     [hashtable]$DartDefineValues = @{}
   )
 

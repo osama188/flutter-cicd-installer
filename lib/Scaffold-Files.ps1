@@ -152,6 +152,11 @@ function Invoke-ScaffoldIosFiles {
     Add-GitignoreLines -GitignorePath (Join-Path $target '.gitignore') -Lines @(
       'ios/fastlane/secrets/'
     )
+    . (Join-Path $InstallerRoot 'lib/Update-IosPodfile.ps1')
+    Update-IosPodfile -TargetPath $target
+  } else {
+    . (Join-Path $InstallerRoot 'lib/Update-IosPodfile.ps1')
+    Update-IosPodfile -TargetPath $target -WhatIf
   }
 
   return $written | Where-Object { $_ }

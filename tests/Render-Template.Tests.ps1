@@ -49,6 +49,23 @@ Describe 'Android workflow template' {
     $content | Should Match "android-v\*"
     $content | Should Match 'refs/tags/android-v'
   }
+  It 'includes --no-codesign for build' {
+    $b = Get-IosDartDefinesWorkflowBlocks -Keys @()
+    $b.BuildIosCommand | Should Match '--no-codesign'
+  }
+}
+
+Describe 'New-InstallConfig' {
+  It 'defaults InHouse to false' {
+    $cfg = New-InstallConfig `
+      -TargetPath $TestDrive `
+      -PackageName 'com.example.app' `
+      -FlutterVersion '3.41.5' `
+      -GitHubEnvironment 'production' `
+      -PlayStoreTrack 'internal' `
+      -GitHubRepo 'owner/repo'
+    $cfg.InHouse | Should Be $false
+  }
 }
 
 Describe 'iOS Fastfile template' {
@@ -63,6 +80,16 @@ Describe 'iOS Fastfile template' {
     $out = Expand-Template -TemplatePath $tpl -Placeholders @{
       BUNDLE_ID     = 'com.example.app'
       MATCH_GIT_URL = 'https://github.com/owner/ios-certificates.git'
+      IN_HOUSE      = 'false'
+    }
+    $out | Should Match 'in_house: false'
+  }
+
+  It 'renders in_house true for enterprise accounts' {
+    $tpl = Join-Path $PSScriptRoot '../templates/ios/fastlane/Fastfile.tpl'
+    $out = Expand-Template -TemplatePath $tpl -Placeholders @{
+      BUNDLE_ID     = 'com.example.app'
+      MATCH_GIT_URL = 'https://github.com/owner/ios-certificates.git'
       IN_HOUSE      = 'true'
     }
     $out | Should Match 'in_house: true'
@@ -70,6 +97,13 @@ Describe 'iOS Fastfile template' {
 }
 
 Describe 'iOS workflow template' {
+  It 'installs flutterfire_cli' {
+    $tpl = Join-Path $PSScriptRoot '../templates/ios/workflow/deploy-ios.yml.tpl'
+    $content = Get-Content -Raw $tpl
+    $content | Should Match 'flutterfire_cli'
+    $content | Should Match 'Install FlutterFire CLI'
+  }
+
   It 'uses ios-v tag prefix' {
     $tpl = Join-Path $PSScriptRoot '../templates/ios/workflow/deploy-ios.yml.tpl'
     $content = Get-Content -Raw $tpl
