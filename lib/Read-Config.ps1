@@ -31,7 +31,7 @@ function Read-InstallConfig {
       -Platform $Platform `
       -MatchGitUrl 'https://github.com/owner/ios-certificates.git' `
       -InHouse $false `
-      -DartDefineKeys @('SUPABASE_URL', 'SUPABASE_ANON_KEY')
+      -DartDefineKeys @()
   }
 
   if ($ConfigFile) {
@@ -99,10 +99,8 @@ function Read-InstallConfig {
     if ($inHouseInput -eq 'y' -or $inHouseInput -eq 'Y') { $inHouse = $true }
   }
 
-  $keysInput = Read-Host 'Dart-define keys (comma-separated; - for none) [SUPABASE_URL,SUPABASE_ANON_KEY]'
+  $keysInput = Read-Host 'Dart-define keys (comma-separated) [none]'
   if ([string]::IsNullOrWhiteSpace($keysInput)) {
-    $keys = @('SUPABASE_URL', 'SUPABASE_ANON_KEY')
-  } elseif ($keysInput.Trim() -eq '-') {
     $keys = @()
   } else {
     $keys = $keysInput.Split(',') | ForEach-Object { $_.Trim() } | Where-Object { $_ }

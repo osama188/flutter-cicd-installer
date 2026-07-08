@@ -6,7 +6,7 @@
   "githubEnvironment": "production",
   "playStoreTrack": "internal",
   "matchGitUrl": "https://github.com/owner/ios-certificates.git",
-  "dartDefineKeys": [],
+  "dartDefineKeys": ["SUPABASE_URL", "SUPABASE_ANON_KEY"],
   "android": {
     "keystorePath": "C:/secrets/upload-keystore.jks",
     "keyAlias": "upload",
@@ -23,7 +23,10 @@
     "matchGitPat": "",
     "inHouse": false
   },
-  "dartDefineValues": {},
+  "dartDefineValues": {
+    "SUPABASE_URL": "",
+    "SUPABASE_ANON_KEY": ""
+  },
   "githubRepo": "owner/repo",
   "updateSecrets": true
 }

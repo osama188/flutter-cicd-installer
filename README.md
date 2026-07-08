@@ -27,7 +27,7 @@ cd flutter-cicd-installer
 
 ### Non-interactive mode
 
-Copy `install.config.example.json`, fill in paths and values, then:
+Copy `install.config.example.json` (no dart-defines) or `install.config.with-dart-defines.example.json` (Supabase example), fill in paths and values, then:
 
 ```powershell
 .\install.ps1 -TargetPath "C:\path\to\flutter_app" `
@@ -35,6 +35,63 @@ Copy `install.config.example.json`, fill in paths and values, then:
   -Platform Both `
   -UpdateSecrets
 ```
+
+### Dart-define keys (optional)
+
+Many Flutter apps need **no** compile-time `--dart-define` values in CI. The installer supports both cases.
+
+#### No dart-defines (default)
+
+Use this when your app does not read `String.fromEnvironment(...)` at build time (no Supabase keys, API URLs baked in at compile time, etc.).
+
+**Interactive:** press Enter at the prompt:
+
+```text
+Dart-define keys (comma-separated) [none]:
+```
+
+**Config file:**
+
+```json
+"dartDefineKeys": [],
+"dartDefineValues": {}
+```
+
+**Generated CI behavior:**
+
+| Platform | What happens |
+|----------|----------------|
+| Android | No `dart_defines.json` step; `flutter test` / `flutter build appbundle` run without `--dart-define-from-file` |
+| iOS | No `dart_defines.json` step; Fastlane runs `flutter build ios` without `--dart-define-from-file` |
+| Secrets | No extra GitHub secrets beyond signing / store credentials |
+
+#### With dart-defines
+
+Use when your app expects compile-time values, e.g. `String.fromEnvironment('API_URL')`.
+
+**Interactive:** enter comma-separated key names:
+
+```text
+Dart-define keys (comma-separated) [none]: API_URL,API_KEY
+```
+
+**Config file:**
+
+```json
+"dartDefineKeys": ["API_URL", "API_KEY"],
+"dartDefineValues": {
+  "API_URL": "https://api.example.com",
+  "API_KEY": "your-key"
+}
+```
+
+The installer will:
+
+1. Add a `Create dart_defines.json` workflow step (one GitHub secret per key)
+2. Pass `--dart-define-from-file=dart_defines.json` on Android test + build
+3. On iOS, pass the same file in Fastlane before archive and fail the build if `DART_DEFINES` is missing from `Generated.xcconfig`
+
+Key names are **fully configurable** — not limited to Supabase. See `install.config.with-dart-defines.example.json` for a Supabase-shaped example.
 
 #### iOS config options (`install.config.json`)
 
@@ -51,7 +108,7 @@ In interactive mode, you are prompted: `Apple Enterprise (in-house) account? [y/
 | `.github/workflows/deploy-ios.yml` | FlutterFire CLI install step (for Crashlytics symbol upload) |
 | `ios/fastlane/Fastfile` | `in_house: false` by default (App Store / TestFlight) |
 | `ios/Podfile` | `IPHONEOS_DEPLOYMENT_TARGET` aligned to `platform :ios` version in `post_install` |
-| Flutter build step | Full `flutter build ios` in Fastlane (not `--config-only`) with `--dart-define-from-file` so compile-time defines are baked in before archive |
+| Flutter build step | Full `flutter build ios` in Fastlane before archive; adds `--dart-define-from-file` only when `dart_defines.json` exists |
 
 ### CLI flags
 
@@ -94,11 +151,13 @@ Platforms deploy independently — push only the tag for the platform you want t
 
 The generated `ios/fastlane/Fastfile` sets `in_house: false` by default (configurable via `ios.inHouse` in the install config). Set `inHouse` to `true` only if you use an Apple Enterprise account.
 
-### Shared (optional)
+### Dart-define secrets (only when `dartDefineKeys` is non-empty)
 
 | Secret | Description |
 |--------|-------------|
-| `SUPABASE_URL`, etc. | Dart-define keys (Android: test+build; iOS: build only) |
+| One per key in `dartDefineKeys` | Value passed as `--dart-define` at build time (e.g. `API_URL`, `SUPABASE_ANON_KEY`) |
+
+Omit this section entirely for apps with `"dartDefineKeys": []`.
 
 ## iOS one-time operator checklist
 
@@ -120,7 +179,7 @@ The installer **does** automatically:
 | Symptom | Likely cause | Fix |
 |---------|--------------|-----|
 | Archive fails on `flutterfire upload-crashlytics-symbols` | `flutterfire` CLI missing on CI | Re-run installer with `-Force -Platform iOS` (v2.1.0+ includes the workflow step) |
-| App shows "Something went wrong" after splash on TestFlight | `--dart-define` values not compiled into release build | v2.1.1+ runs full `flutter build ios` in Fastlane before archive; verify `SUPABASE_*` secrets are non-empty |
+| App shows "Something went wrong" after splash on TestFlight | `--dart-define` values not compiled into release build | Only if you use dart-defines: verify secrets are non-empty; use installer v2.1.1+ (full `flutter build ios` in Fastlane) |
 | `upload_to_testflight` auth error | `in_house: true` on a standard App Store account | Set `ios.inHouse` to `false` and re-scaffold Fastfile |
 | Pod `IPHONEOS_DEPLOYMENT_TARGET` warnings | Pods target older iOS than Xcode supports | Re-run installer to patch Podfile, or add the `post_install` block manually |
 | Match works but upload fails | ASC API key lacks App Manager role, or wrong `ASC_*` secrets | Verify secrets in `production` environment; re-encode `.p8` as base64 |
@@ -145,3 +204,4 @@ Invoke-Pester -Path tests/
 - Installer v2.0.0 adds iOS support
 - Installer v2.1.0 ports production iOS CI fixes: FlutterFire CLI step, `in_house: false` default, Podfile deployment-target patch
 - Installer v2.1.1 fixes dart-define propagation: full `flutter build ios` in Fastlane instead of workflow `--config-only`
+- Installer v2.1.2 defaults interactive dart-define prompt to none; documents optional dart-defines in README
