@@ -4,9 +4,21 @@ function Ensure-GhEnvironment {
     [Parameter(Mandatory)][string]$Environment
   )
   $owner, $name = $Repo.Split('/')
-  gh api "repos/$owner/$name/environments/$Environment" 2>$null | Out-Null
-  if ($LASTEXITCODE -ne 0) {
-    gh api --method PUT "repos/$owner/$name/environments/$Environment" -f wait_timer=0 | Out-Null
+  $prevNativePreference = $PSNativeCommandUseErrorActionPreference
+  $prevErrorAction = $ErrorActionPreference
+    $PSNativeCommandUseErrorActionPreference = $false
+    $ErrorActionPreference = 'Continue'
+  try {
+    gh api "repos/$owner/$name/environments/$Environment" 2>$null | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+      gh api --method PUT "repos/$owner/$name/environments/$Environment" 2>$null | Out-Null
+      if ($LASTEXITCODE -ne 0) {
+        throw "Failed to create GitHub environment '$Environment' for $Repo. Verify the repo exists and gh has admin access."
+      }
+    }
+  } finally {
+    $PSNativeCommandUseErrorActionPreference = $prevNativePreference
+    $ErrorActionPreference = $prevErrorAction
   }
 }
 

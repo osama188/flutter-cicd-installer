@@ -37,6 +37,26 @@ function Get-GitHubRepoFromRemote {
   } finally { Pop-Location }
 }
 
+function Test-PlaceholderGitHubRepo {
+  param([string]$Repo)
+  if ([string]::IsNullOrWhiteSpace($Repo)) { return $true }
+  return $Repo -eq 'owner/repo'
+}
+
+function Resolve-GitHubRepo {
+  param(
+    [string]$ConfigRepo,
+    [Parameter(Mandatory)][string]$DetectedRepo
+  )
+  if (Test-PlaceholderGitHubRepo -Repo $ConfigRepo) {
+    if ($ConfigRepo) {
+      Write-Warning "githubRepo is placeholder '$ConfigRepo'; using git remote: $DetectedRepo"
+    }
+    return $DetectedRepo
+  }
+  return $ConfigRepo
+}
+
 function Test-GhAuthenticated {
   gh auth status 2>&1 | Out-Null
   if ($LASTEXITCODE -ne 0) {

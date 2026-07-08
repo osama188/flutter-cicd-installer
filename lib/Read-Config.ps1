@@ -53,7 +53,7 @@ function Read-InstallConfig {
       -FlutterVersion $json.flutterVersion `
       -GitHubEnvironment $json.githubEnvironment `
       -PlayStoreTrack $json.playStoreTrack `
-      -GitHubRepo ($(if ($json.githubRepo) { $json.githubRepo } else { $TargetInfo.GitHubRepo })) `
+      -GitHubRepo (Resolve-GitHubRepo -ConfigRepo ([string]$json.githubRepo) -DetectedRepo $TargetInfo.GitHubRepo) `
       -Platform $cfgPlatform `
       -MatchGitUrl ([string]$json.matchGitUrl) `
       -DartDefineKeys $keys `
