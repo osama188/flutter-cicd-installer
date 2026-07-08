@@ -139,6 +139,7 @@ function Invoke-ScaffoldIosFiles {
       $ph = @{
         BUNDLE_ID     = $Config.BundleId
         MATCH_GIT_URL = $Config.MatchGitUrl
+        IN_HOUSE      = $Config.InHouse.ToString().ToLower()
       }
       $content = Expand-Template -TemplatePath $src -Placeholders $ph
     } else {

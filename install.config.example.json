@@ -20,7 +20,8 @@
     "ascKeyPath": "C:/secrets/AuthKey_XXXXX.p8",
     "matchPassword": "",
     "matchGitUsername": "github-username",
-    "matchGitPat": ""
+    "matchGitPat": "",
+    "inHouse": true
   },
   "dartDefineValues": {
     "SUPABASE_URL": "",

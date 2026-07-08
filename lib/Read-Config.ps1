@@ -30,6 +30,7 @@ function Read-InstallConfig {
       -GitHubRepo $TargetInfo.GitHubRepo `
       -Platform $Platform `
       -MatchGitUrl 'https://github.com/owner/ios-certificates.git' `
+      -InHouse $true `
       -DartDefineKeys @('SUPABASE_URL', 'SUPABASE_ANON_KEY')
   }
 
@@ -67,6 +68,7 @@ function Read-InstallConfig {
       -MatchPassword ([string]$ios.matchPassword) `
       -MatchGitUsername ([string]$ios.matchGitUsername) `
       -MatchGitPat ([string]$ios.matchGitPat) `
+      -InHouse ($(if ($null -ne $ios.inHouse) { [bool]$ios.inHouse } else { $true })) `
       -DartDefineValues $dartValues
   }
 
@@ -90,8 +92,11 @@ function Read-InstallConfig {
   if ([string]::IsNullOrWhiteSpace($track)) { $track = 'internal' }
 
   $matchUrl = ''
+  $inHouse = $true
   if ($cfgPlatform -in 'iOS', 'Both') {
     $matchUrl = Read-Host 'Match certs repo URL (https://github.com/owner/ios-certificates.git)'
+    $inHouseInput = Read-Host 'Apple Enterprise (in-house) account? [Y/n]'
+    if ($inHouseInput -eq 'n' -or $inHouseInput -eq 'N') { $inHouse = $false }
   }
 
   $keysInput = Read-Host 'Dart-define keys (comma-separated; - for none) [SUPABASE_URL,SUPABASE_ANON_KEY]'
@@ -152,5 +157,6 @@ function Read-InstallConfig {
     -MatchPassword $matchPassword `
     -MatchGitUsername $matchGitUser `
     -MatchGitPat $matchGitPat `
+    -InHouse $inHouse `
     -DartDefineValues $dartValues
 }

@@ -36,6 +36,14 @@ Copy `install.config.example.json`, fill in paths and values, then:
   -UpdateSecrets
 ```
 
+#### iOS config options (`install.config.json`)
+
+| Field | Default | Description |
+|-------|---------|-------------|
+| `ios.inHouse` | `true` | Set `in_house` on the App Store Connect API key in the generated Fastfile. Use `true` for Apple Enterprise (in-house) accounts; set `false` for standard App Store Connect accounts. |
+
+In interactive mode, you are prompted: `Apple Enterprise (in-house) account? [Y/n]` (default: yes).
+
 ### CLI flags
 
 | Flag | Description |
@@ -74,6 +82,8 @@ Platforms deploy independently — push only the tag for the platform you want t
 | `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_CONTENT` | App Store Connect API key |
 | `MATCH_PASSWORD` | Match encryption passphrase |
 | `MATCH_GIT_BASIC_AUTHORIZATION` | Base64 `username:PAT` for certs repo |
+
+The generated `ios/fastlane/Fastfile` sets `in_house: true` by default (configurable via `ios.inHouse` in the install config). Set `inHouse` to `false` if you use a standard App Store Connect account rather than Apple Enterprise.
 
 ### Shared (optional)
 

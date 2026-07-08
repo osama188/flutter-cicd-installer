@@ -51,6 +51,24 @@ Describe 'Android workflow template' {
   }
 }
 
+Describe 'iOS Fastfile template' {
+  It 'uses configurable in_house placeholder' {
+    $tpl = Join-Path $PSScriptRoot '../templates/ios/fastlane/Fastfile.tpl'
+    $content = Get-Content -Raw $tpl
+    $content | Should Match 'in_house: \{\{IN_HOUSE\}\}'
+  }
+
+  It 'renders in_house from config' {
+    $tpl = Join-Path $PSScriptRoot '../templates/ios/fastlane/Fastfile.tpl'
+    $out = Expand-Template -TemplatePath $tpl -Placeholders @{
+      BUNDLE_ID     = 'com.example.app'
+      MATCH_GIT_URL = 'https://github.com/owner/ios-certificates.git'
+      IN_HOUSE      = 'true'
+    }
+    $out | Should Match 'in_house: true'
+  }
+}
+
 Describe 'iOS workflow template' {
   It 'uses ios-v tag prefix' {
     $tpl = Join-Path $PSScriptRoot '../templates/ios/workflow/deploy-ios.yml.tpl'

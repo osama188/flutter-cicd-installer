@@ -22,6 +22,7 @@ function New-InstallConfig {
     [string]$MatchPassword = '',
     [string]$MatchGitUsername = '',
     [string]$MatchGitPat = '',
+    [bool]$InHouse = $true,
     [hashtable]$DartDefineValues = @{}
   )
 
@@ -47,6 +48,7 @@ function New-InstallConfig {
     MatchPassword          = $MatchPassword
     MatchGitUsername       = $MatchGitUsername
     MatchGitPat            = $MatchGitPat
+    InHouse                = $InHouse
     DartDefineValues       = $DartDefineValues
   }
 }

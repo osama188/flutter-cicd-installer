@@ -11,7 +11,7 @@ platform :ios do
       key_id: ENV["ASC_KEY_ID"],
       issuer_id: ENV["ASC_ISSUER_ID"],
       key_filepath: "/tmp/AuthKey.p8",
-      in_house: false
+      in_house: {{IN_HOUSE}}
     )
 
     match(
