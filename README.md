@@ -106,9 +106,8 @@ In interactive mode, you are prompted: `Apple Enterprise (in-house) account? [y/
 | Target | Change |
 |--------|--------|
 | `.github/workflows/deploy-ios.yml` | FlutterFire CLI install step (for Crashlytics symbol upload) |
-| `ios/fastlane/Fastfile` | `in_house: false` by default (App Store / TestFlight) |
+| `ios/fastlane/Fastfile` | `in_house: false` by default; full `flutter build ios` before archive; reads `dart_defines.json` from **project root** |
 | `ios/Podfile` | `IPHONEOS_DEPLOYMENT_TARGET` aligned to `platform :ios` version in `post_install` |
-| Flutter build step | Full `flutter build ios` in Fastlane before archive; adds `--dart-define-from-file` only when `dart_defines.json` exists |
 
 ### CLI flags
 
@@ -179,7 +178,7 @@ The installer **does** automatically:
 | Symptom | Likely cause | Fix |
 |---------|--------------|-----|
 | Archive fails on `flutterfire upload-crashlytics-symbols` | `flutterfire` CLI missing on CI | Re-run installer with `-Force -Platform iOS` (v2.1.0+ includes the workflow step) |
-| App shows "Something went wrong" after splash on TestFlight | `--dart-define` values not compiled into release build | Only if you use dart-defines: verify secrets are non-empty; use installer v2.1.1+ (full `flutter build ios` in Fastlane) |
+| App shows "Something went wrong" after splash on TestFlight | `--dart-define` values not compiled into release build | Verify `production` secrets are non-empty; use v2.1.1+ (full `flutter build ios` in Fastlane); v2.1.3+ fixes `dart_defines.json` path from repo root |
 | `upload_to_testflight` auth error | `in_house: true` on a standard App Store account | Set `ios.inHouse` to `false` and re-scaffold Fastfile |
 | Pod `IPHONEOS_DEPLOYMENT_TARGET` warnings | Pods target older iOS than Xcode supports | Re-run installer to patch Podfile, or add the `post_install` block manually |
 | Match works but upload fails | ASC API key lacks App Manager role, or wrong `ASC_*` secrets | Verify secrets in `production` environment; re-encode `.p8` as base64 |
@@ -205,3 +204,4 @@ Invoke-Pester -Path tests/
 - Installer v2.1.0 ports production iOS CI fixes: FlutterFire CLI step, `in_house: false` default, Podfile deployment-target patch
 - Installer v2.1.1 fixes dart-define propagation: full `flutter build ios` in Fastlane instead of workflow `--config-only`
 - Installer v2.1.2 defaults interactive dart-define prompt to none; documents optional dart-defines in README
+- Installer v2.1.3 fixes `dart_defines.json` lookup from repo root in generated iOS Fastfile (not `ios/dart_defines.json`)
