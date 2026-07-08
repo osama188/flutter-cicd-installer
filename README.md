@@ -51,7 +51,7 @@ In interactive mode, you are prompted: `Apple Enterprise (in-house) account? [y/
 | `.github/workflows/deploy-ios.yml` | FlutterFire CLI install step (for Crashlytics symbol upload) |
 | `ios/fastlane/Fastfile` | `in_house: false` by default (App Store / TestFlight) |
 | `ios/Podfile` | `IPHONEOS_DEPLOYMENT_TARGET` aligned to `platform :ios` version in `post_install` |
-| Flutter build step | `--no-codesign` on `flutter build ios --config-only` (signing handled by Fastlane Match) |
+| Flutter build step | Full `flutter build ios` in Fastlane (not `--config-only`) with `--dart-define-from-file` so compile-time defines are baked in before archive |
 
 ### CLI flags
 
@@ -120,6 +120,7 @@ The installer **does** automatically:
 | Symptom | Likely cause | Fix |
 |---------|--------------|-----|
 | Archive fails on `flutterfire upload-crashlytics-symbols` | `flutterfire` CLI missing on CI | Re-run installer with `-Force -Platform iOS` (v2.1.0+ includes the workflow step) |
+| App shows "Something went wrong" after splash on TestFlight | `--dart-define` values not compiled into release build | v2.1.1+ runs full `flutter build ios` in Fastlane before archive; verify `SUPABASE_*` secrets are non-empty |
 | `upload_to_testflight` auth error | `in_house: true` on a standard App Store account | Set `ios.inHouse` to `false` and re-scaffold Fastfile |
 | Pod `IPHONEOS_DEPLOYMENT_TARGET` warnings | Pods target older iOS than Xcode supports | Re-run installer to patch Podfile, or add the `post_install` block manually |
 | Match works but upload fails | ASC API key lacks App Manager role, or wrong `ASC_*` secrets | Verify secrets in `production` environment; re-encode `.p8` as base64 |
@@ -143,3 +144,4 @@ Invoke-Pester -Path tests/
 - Android tags changed from `v*` to `android-v*`
 - Installer v2.0.0 adds iOS support
 - Installer v2.1.0 ports production iOS CI fixes: FlutterFire CLI step, `in_house: false` default, Podfile deployment-target patch
+- Installer v2.1.1 fixes dart-define propagation: full `flutter build ios` in Fastlane instead of workflow `--config-only`

@@ -22,6 +22,27 @@ platform :ios do
     increment_version_number(version_number: ENV["VERSION_NAME"])
     increment_build_number(build_number: ENV["BUILD_NUMBER"])
 
+    dart_defines = File.expand_path("../dart_defines.json", __dir__)
+    define_flag = File.exist?(dart_defines) ? "--dart-define-from-file=#{dart_defines}" : ""
+
+    sh(
+      "cd .. && flutter build ios --release --no-codesign " \
+      "--build-name=#{ENV['VERSION_NAME']} " \
+      "--build-number=#{ENV['BUILD_NUMBER']} " \
+      "#{define_flag}"
+    )
+
+    if File.exist?(dart_defines)
+      generated_xcconfig = File.join(__dir__, "Flutter/Generated.xcconfig")
+      generated = File.read(generated_xcconfig)
+      unless generated.match?(/DART_DEFINES=.+/)
+        UI.user_error!(
+          "DART_DEFINES missing from Generated.xcconfig — " \
+          "dart-defines were not applied to the iOS build"
+        )
+      end
+    end
+
     build_app(
       workspace: "Runner.xcworkspace",
       scheme: "Runner",

@@ -32,13 +32,17 @@ Describe 'Get-IosDartDefinesWorkflowBlocks' {
   It 'omits dart defines when no keys' {
     $b = Get-IosDartDefinesWorkflowBlocks -Keys @()
     $b.DartDefinesStep | Should Be ''
-    $b.BuildIosCommand | Should Not Match 'dart-define-from-file'
   }
 
-  It 'includes dart defines for build' {
+  It 'includes dart defines step with secret validation' {
     $b = Get-IosDartDefinesWorkflowBlocks -Keys @('SUPABASE_URL')
     $b.DartDefinesStep | Should Match 'dart_defines.json'
-    $b.BuildIosCommand | Should Match 'dart-define-from-file'
+    $b.DartDefinesStep | Should Match 'Secret SUPABASE_URL is empty'
+  }
+
+  It 'does not include config-only flutter build in workflow' {
+    $b = Get-IosDartDefinesWorkflowBlocks -Keys @('SUPABASE_URL')
+    $b.DartDefinesStep | Should Not Match 'config-only'
   }
 }
 
@@ -48,10 +52,6 @@ Describe 'Android workflow template' {
     $content = Get-Content -Raw $tpl
     $content | Should Match "android-v\*"
     $content | Should Match 'refs/tags/android-v'
-  }
-  It 'includes --no-codesign for build' {
-    $b = Get-IosDartDefinesWorkflowBlocks -Keys @()
-    $b.BuildIosCommand | Should Match '--no-codesign'
   }
 }
 
@@ -94,6 +94,14 @@ Describe 'iOS Fastfile template' {
     }
     $out | Should Match 'in_house: true'
   }
+
+  It 'compiles dart defines before archive' {
+    $tpl = Join-Path $PSScriptRoot '../templates/ios/fastlane/Fastfile.tpl'
+    $content = Get-Content -Raw $tpl
+    $content | Should Match 'flutter build ios --release --no-codesign'
+    $content | Should Match 'dart-define-from-file'
+    $content | Should Match 'DART_DEFINES missing'
+  }
 }
 
 Describe 'iOS workflow template' {
@@ -109,5 +117,11 @@ Describe 'iOS workflow template' {
     $content = Get-Content -Raw $tpl
     $content | Should Match "ios-v\*"
     $content | Should Match 'refs/tags/ios-v'
+  }
+
+  It 'does not use config-only flutter build in workflow' {
+    $tpl = Join-Path $PSScriptRoot '../templates/ios/workflow/deploy-ios.yml.tpl'
+    $content = Get-Content -Raw $tpl
+    $content | Should Not Match 'config-only'
   }
 }

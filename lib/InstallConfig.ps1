@@ -99,29 +99,22 @@ $($argLines -join "`n")
 function Get-IosDartDefinesWorkflowBlocks {
   param([string[]]$Keys)
 
-  $baseCmd = @'
-          flutter build ios --config-only --release --no-codesign \
-            --build-name="${VERSION_NAME}" \
-            --build-number="${BUILD_NUMBER}"
-'@
-
   if ($Keys.Count -eq 0) {
     return @{
       DartDefinesStep = ''
-      BuildIosCommand = $baseCmd
     }
   }
 
   $dart = Get-DartDefinesWorkflowBlocks -Keys $Keys
-  $buildCmd = @'
-          flutter build ios --config-only --release --no-codesign \
-            --build-name="${VERSION_NAME}" \
-            --build-number="${BUILD_NUMBER}" \
-            --dart-define-from-file=dart_defines.json
-'@
+  $validationLines = ($Keys | ForEach-Object {
+    '          if [ -z "${{{0}:-}}" ]; then echo "Secret {0} is empty"; exit 1; fi' -f $_
+  }) -join "`n"
+
+  $dartStep = $dart.DartDefinesStep -replace (
+    '(        run: \|)\r?\n'
+  ), "`$1`n          set -euo pipefail`n$validationLines`n"
 
   return @{
-    DartDefinesStep = $dart.DartDefinesStep
-    BuildIosCommand = $buildCmd
+    DartDefinesStep = $dartStep
   }
 }

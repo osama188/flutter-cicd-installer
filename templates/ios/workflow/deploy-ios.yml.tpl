@@ -97,10 +97,6 @@ jobs:
           test -s /tmp/AuthKey.p8
 
 {{DART_DEFINES_STEP}}
-      - name: Prepare iOS build config
-        run: |
-{{BUILD_IOS_COMMAND}}
-
       - name: Deploy to TestFlight
         run: bundle exec fastlane deploy
         working-directory: ios

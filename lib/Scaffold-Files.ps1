@@ -113,7 +113,6 @@ function Invoke-ScaffoldIosFiles {
     GITHUB_ENV        = $Config.GitHubEnvironment
     MATCH_GIT_URL     = $Config.MatchGitUrl
     DART_DEFINES_STEP = $iosDart.DartDefinesStep
-    BUILD_IOS_COMMAND = $iosDart.BuildIosCommand
   }
 
   $written = @()
