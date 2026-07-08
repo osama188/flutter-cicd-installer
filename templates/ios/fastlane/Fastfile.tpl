@@ -22,18 +22,19 @@ platform :ios do
     increment_version_number(version_number: ENV["VERSION_NAME"])
     increment_build_number(build_number: ENV["BUILD_NUMBER"])
 
-    dart_defines = File.expand_path("../dart_defines.json", __dir__)
+    project_root = File.expand_path("../..", __dir__)
+    dart_defines = File.join(project_root, "dart_defines.json")
     define_flag = File.exist?(dart_defines) ? "--dart-define-from-file=#{dart_defines}" : ""
 
     sh(
-      "cd .. && flutter build ios --release --no-codesign " \
+      "cd #{project_root.shellescape} && flutter build ios --release --no-codesign " \
       "--build-name=#{ENV['VERSION_NAME']} " \
       "--build-number=#{ENV['BUILD_NUMBER']} " \
       "#{define_flag}"
     )
 
     if File.exist?(dart_defines)
-      generated_xcconfig = File.join(__dir__, "Flutter/Generated.xcconfig")
+      generated_xcconfig = File.join(project_root, "ios/Flutter/Generated.xcconfig")
       generated = File.read(generated_xcconfig)
       unless generated.match?(/DART_DEFINES=.+/)
         UI.user_error!(
