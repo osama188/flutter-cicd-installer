@@ -164,7 +164,15 @@ The installer scaffolds files and sets secrets but **cannot** automate:
 
 1. Create App Store Connect API key (role: **App Manager** or **Admin**)
 2. Create private `ios-certificates` GitHub repo
-3. Run `fastlane match appstore` on a Mac
+3. Run `fastlane match appstore` on a Mac (from the Flutter project root):
+
+   ```bash
+   cd ios
+   bundle install
+   bundle exec fastlane match appstore
+   ```
+
+   Set `matchGitUrl` in your install config to your real certs repo (e.g. `https://github.com/you/ios-certificates.git`), not the example `owner` placeholder.
 4. Xcode: Runner → Release → manual signing → commit `project.pbxproj`
 
 The installer **does** automatically:
