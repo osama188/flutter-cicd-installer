@@ -121,7 +121,85 @@ In interactive mode, you are prompted: `Apple Enterprise (in-house) account? [y/
 | `-SkipSecrets` | Scaffold files only |
 | `-WhatIf` | Preview changes without writing |
 
-## Release tags
+## Triggering deployments
+
+After the installer runs, commit the scaffolded files (`.github/workflows/`, `android/fastlane/`, `ios/fastlane/`) and push to GitHub. Each platform has its own workflow and can be released independently.
+
+| Platform | Workflow | Tag prefix |
+|----------|----------|------------|
+| Android | `Deploy to Play Store` | `android-v*` |
+| iOS | `Deploy to TestFlight` | `ios-v*` |
+
+Version format is `{version}+{build}` — same as `pubspec.yaml` (e.g. `version: 1.0.4+13` → tag `android-v1.0.4+13` or `ios-v1.0.4+13`).
+
+### Create and push a release tag
+
+**1. Bump version in `pubspec.yaml`**
+
+```yaml
+version: 1.0.4+13
+```
+
+**2. Commit and push your branch**
+
+```bash
+git add pubspec.yaml
+git commit -m "chore: bump version to 1.0.4+13"
+git push origin main
+```
+
+Replace `main` with your default branch if different (`master`, etc.).
+
+**3. Create the tag**
+
+Android:
+
+```bash
+git tag android-v1.0.4+13
+```
+
+iOS:
+
+```bash
+git tag ios-v1.0.4+13
+```
+
+**4. Push the tag** (this starts the GitHub Action)
+
+```bash
+git push origin android-v1.0.4+13
+```
+
+or for iOS:
+
+```bash
+git push origin ios-v1.0.4+13
+```
+
+**One-liner** (create + push tag in one step):
+
+```bash
+# Android
+git tag android-v1.0.4+13 && git push origin android-v1.0.4+13
+
+# iOS
+git tag ios-v1.0.4+13 && git push origin ios-v1.0.4+13
+```
+
+Tag must match exactly: `android-v<major>.<minor>.<patch>+<build>` or `ios-v<major>.<minor>.<patch>+<build>`.
+
+### Run manually from GitHub Actions
+
+1. GitHub → **Actions** → **Deploy to Play Store** or **Deploy to TestFlight**
+2. **Run workflow** → enter version name (`1.0.4`) and build number (`13`) → **Run workflow**
+
+Use this for ad-hoc deploys without a tag. Keep `pubspec.yaml` in sync with the values you enter.
+
+### Monitor
+
+**Actions** tab on your repo (e.g. `https://github.com/you/your-app/actions`). Workflows use the `production` environment for secrets.
+
+## Release tags (quick reference)
 
 | Platform | Tag format | Example |
 |----------|------------|---------|
