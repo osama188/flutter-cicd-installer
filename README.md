@@ -267,6 +267,7 @@ The installer **does** automatically:
 | App shows "Something went wrong" after splash on TestFlight | `--dart-define` values not compiled into release build | Verify `production` secrets are non-empty; use v2.1.1+ (full `flutter build ios` in Fastlane); v2.1.3+ fixes `dart_defines.json` path from repo root |
 | `upload_to_testflight` auth error | `in_house: true` on a standard App Store account | Set `ios.inHouse` to `false` and re-scaffold Fastfile |
 | Pod `IPHONEOS_DEPLOYMENT_TARGET` warnings | Pods target older iOS than Xcode supports | Re-run installer to patch Podfile, or add the `post_install` block manually |
+| Match clone fails with exit 128 / "could not read Username" | `MATCH_GIT_BASIC_AUTHORIZATION` uses an expired or invalid PAT | Re-run installer with `-UpdateSecrets` (v2.1.4+ falls back to `gh auth token` if config PAT is invalid), or create a new PAT with read access to `ios-certificates` |
 | Match works but upload fails | ASC API key lacks App Manager role, or wrong `ASC_*` secrets | Verify secrets in `production` environment; re-encode `.p8` as base64 |
 
 To refresh an existing project after upgrading the installer:

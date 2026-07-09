@@ -41,6 +41,76 @@ function Set-GhSecret {
   Write-Host "Set secret: $Name"
 }
 
+function Get-MatchGitRepoFromUrl {
+  param([Parameter(Mandatory)][string]$MatchGitUrl)
+
+  if ($MatchGitUrl -match 'github\.com[:/](?<owner>[^/]+)/(?<repo>[^/.]+)') {
+    return @{ Owner = $Matches.owner; Name = $Matches.repo }
+  }
+  throw "Unsupported matchGitUrl format: $MatchGitUrl"
+}
+
+function Test-MatchGitCredentials {
+  param(
+    [Parameter(Mandatory)][string]$Username,
+    [Parameter(Mandatory)][string]$Token,
+    [Parameter(Mandatory)][string]$MatchGitUrl
+  )
+
+  if ([string]::IsNullOrWhiteSpace($Token)) { return $false }
+
+  $repo = Get-MatchGitRepoFromUrl -MatchGitUrl $MatchGitUrl
+  $raw = "${Username}:${Token}"
+  $b64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($raw))
+  try {
+    $null = Invoke-RestMethod `
+      -Uri "https://api.github.com/repos/$($repo.Owner)/$($repo.Name)" `
+      -Headers @{
+        Authorization = "Basic $b64"
+        Accept        = 'application/vnd.github+json'
+      }
+    return $true
+  } catch {
+    return $false
+  }
+}
+
+function Resolve-MatchGitPat {
+  param(
+    [Parameter(Mandatory)]$Config
+  )
+
+  if (-not [string]::IsNullOrWhiteSpace($Config.MatchGitPat)) {
+    if (Test-MatchGitCredentials -Username $Config.MatchGitUsername `
+        -Token $Config.MatchGitPat -MatchGitUrl $Config.MatchGitUrl) {
+      return $Config.MatchGitPat
+    }
+    Write-Warning "ios.matchGitPat cannot access $($Config.MatchGitUrl). Falling back to gh auth token."
+  }
+
+  $ghToken = (gh auth token 2>$null)
+  if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($ghToken)) {
+    throw "No valid match Git credentials. Set ios.matchGitPat in config or run 'gh auth login' with access to $($Config.MatchGitUrl)."
+  }
+  if (-not (Test-MatchGitCredentials -Username $Config.MatchGitUsername `
+      -Token $ghToken -MatchGitUrl $Config.MatchGitUrl)) {
+    throw "gh auth token cannot read $($Config.MatchGitUrl). Grant repo access or use a PAT with read access to ios-certificates."
+  }
+
+  Write-Host 'Using gh auth token for MATCH_GIT_BASIC_AUTHORIZATION'
+  return $ghToken
+}
+
+function New-MatchGitBasicAuthorization {
+  param(
+    [Parameter(Mandatory)][string]$Username,
+    [Parameter(Mandatory)][string]$Token
+  )
+
+  $raw = "${Username}:${Token}"
+  return [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($raw))
+}
+
 function Set-DartDefineGhSecrets {
   param(
     [Parameter(Mandatory)]$Config,
@@ -121,8 +191,9 @@ function Invoke-SetIosGhSecrets {
   if (-not $WhatIf) {
     $ascB64 = [Convert]::ToBase64String(
       [IO.File]::ReadAllBytes((Resolve-Path $Config.AscKeyPath)))
-    $raw = "$($Config.MatchGitUsername):$($Config.MatchGitPat)"
-    $matchAuth = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($raw))
+    $matchPat = Resolve-MatchGitPat -Config $Config
+    $matchAuth = New-MatchGitBasicAuthorization `
+      -Username $Config.MatchGitUsername -Token $matchPat
   }
 
   $names = [System.Collections.Generic.List[string]]::new()
