@@ -65,34 +65,33 @@ function Get-DartDefinesWorkflowBlocks {
   }
 
   $envBlock = ($Keys | ForEach-Object {
-    '          {0}: ${{ secrets.{0} }}' -f $_
+    "          $_`: `${{ secrets.$_ }}"
   }) -join "`n"
 
   $argLines = [System.Collections.Generic.List[string]]::new()
   $jsonPairs = [System.Collections.Generic.List[string]]::new()
-  for ($i = 0; $i -lt $Keys.Count; $i++) {
-    $key = $Keys[$i]
-    $var = "v$i"
-    $suffix = if ($i -lt $Keys.Count - 1) { ' \' } else { '' }
-    $argLines.Add(('            --arg {0} "${{{1}}}"{2}' -f $var, $key, $suffix))
-    $jsonPairs.Add(('{0}: ${1}' -f $key, "`$$var"))
+  foreach ($key in $Keys) {
+    $argLines.Add("            --arg $key ""`${$key}"" \")
+    $jsonPairs.Add(('{0}: {1}' -f $key, ('$' + $key)))
   }
 
-  $dartStep = @"
-      - name: Create dart_defines.json
-        env:
-$envBlock
-        run: |
-          jq -n \
-$($argLines -join "`n")
-            '{$($jsonPairs -join ', ')}' \
-            > dart_defines.json
-"@
+  $jsonFilter = "'{$($jsonPairs -join ', ')}' \"
+
+  $dartStep = @(
+    '      - name: Create dart_defines.json'
+    '        env:'
+    $envBlock
+    '        run: |'
+    '          jq -n \'
+    $argLines
+    "            $jsonFilter"
+    '            > dart_defines.json'
+  ) -join "`n"
 
   return @{
     DartDefinesStep  = $dartStep
     TestCommand      = 'flutter test --dart-define-from-file=dart_defines.json'
-    BuildDefineFlags = "`n            --dart-define-from-file=dart_defines.json"
+    BuildDefineFlags = " \`n            --dart-define-from-file=dart_defines.json"
   }
 }
 

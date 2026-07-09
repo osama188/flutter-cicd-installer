@@ -23,8 +23,13 @@ Describe 'Get-DartDefinesWorkflowBlocks' {
   It 'generates jq block for two keys' {
     $b = Get-DartDefinesWorkflowBlocks -Keys @('SUPABASE_URL', 'SUPABASE_ANON_KEY')
     $b.DartDefinesStep | Should Match 'SUPABASE_URL'
+    $b.DartDefinesStep | Should Match '\$\{\{ secrets\.SUPABASE_URL \}\}'
     $b.DartDefinesStep | Should Match 'dart_defines.json'
+    $b.DartDefinesStep | Should Match '--arg SUPABASE_URL'
+    $b.DartDefinesStep | Should Match 'SUPABASE_URL: \$SUPABASE_URL'
+    $b.DartDefinesStep | Should Not Match '\$\$v'
     $b.TestCommand | Should Match 'dart-define-from-file'
+    $b.BuildDefineFlags | Should Match '\\'
   }
 }
 
